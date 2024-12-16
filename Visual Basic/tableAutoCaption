@@ -1,0 +1,76 @@
+Sub TableAutoCaption()
+    Dim excelApp As Object
+    Dim workbook As Object
+    Dim sheet As Object
+    Dim doc As Document
+    Dim tblIndex As Integer
+    Dim tbl As Table
+    Dim captionText As String
+    Dim excelFilePath As String
+    Dim startPage As Integer
+    Dim tblRange As Range
+    Dim currentPage As Integer
+    Dim paragraphAbove As Range
+
+    
+    excelFilePath = " " ' Set your Excel file path
+    startPage = 10 ' Change this to your desired page number
+
+    ' Open Excel
+    On Error Resume Next
+    Set excelApp = CreateObject("Excel.Application")
+    If excelApp Is Nothing Then
+        MsgBox "Excel is not installed or not accessible! Please close excel application", vbCritical
+        Exit Sub
+    End If
+    On Error GoTo 0
+
+    Set workbook = excelApp.Workbooks.Open(excelFilePath) ' Open the workbook
+    Set sheet = workbook.Sheets(3) ' Assuming data is on the third sheet
+
+    ' Loop through tables in the Word document
+    Set doc = ActiveDocument
+    tblIndex = 1
+
+    For Each tbl In doc.Tables
+        ' Determine the page number of the table
+        Set tblRange = tbl.Range
+        currentPage = tblRange.Information(wdActiveEndPageNumber)
+
+        If currentPage >= startPage Then
+            ' Read the caption from Excel
+            On Error Resume Next
+            captionText = sheet.Cells(tblIndex, 2).Value
+            On Error GoTo 0
+
+            If captionText <> "" Then
+                ' Create a new paragraph above the table
+                tblRange.Collapse Direction:=wdCollapseStart
+                Set paragraphAbove = tblRange.Paragraphs.Add.Range
+                paragraphAbove.Text = vbNullString ' Ensure it's empty
+                
+                ' Insert the caption
+                paragraphAbove.InsertCaption Label:="Jadual", TitleAutoText:="", Title:=captionText, _
+                                             Position:=wdCaptionPositionAbove, ExcludeLabel:=False
+                                             
+                ' Center-align the caption
+                paragraphAbove.ParagraphFormat.Alignment = wdAlignParagraphCenter
+            Else
+                MsgBox "No caption found for table " & tblIndex, vbExclamation
+            End If
+
+            tblIndex = tblIndex + 1
+        End If
+    Next tbl
+
+    ' Close Excel
+    workbook.Close SaveChanges:=False
+    excelApp.Quit
+    Set excelApp = Nothing
+    Set workbook = Nothing
+    Set sheet = Nothing
+
+    MsgBox "Table captions added successfully!", vbInformation
+End Sub
+
+
